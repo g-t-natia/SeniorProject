@@ -1,0 +1,36 @@
+//Get Landsat data and determine dates
+var collectionID = 'LANDSAT/LC08/C01/T1_TOA'
+var startDate = '2020-05-01'
+var endDate = '2020-05-30'
+
+//Specify Landsat parameters
+var data = ee.ImageCollection(collectionID)
+          .filterBounds(area)
+          .filterDate(startDate, endDate)
+          .filterMetadata('CLOUD_COVER', 'less_than', 10)
+          .median();
+print(data)
+
+//Determine bands
+var FCC ={ bands: ['B5','B4','B3'],min:0, max: 0.3};
+Map.addLayer(data,FCC,'Landsat8');
+
+//Calculate EVI
+var evi = data.expression(
+  '2.5 * ((NIR - RED) / (NIR + 6 * RED - 7.5 * BLUE + 1))', {
+    'NIR' : data.select('B5'),
+    'RED' : data.select('B4'),
+    'BLUE' : data.select('B2')
+});
+print(evi)
+
+//Add layer
+Map.addLayer(evi, {min: -1, max: 1, palette: ['red', 'brown', 'yellow', 'green']}, 'EVI');
+
+// Export the image to Google Drive, specifying scale and region.
+Export.image.toDrive({
+  image: evi,
+  description: 'Y2020M05',
+  scale: 30,
+  region: area
+});
