@@ -1,16 +1,20 @@
+//Define area of interest
 var area = aoi
 var zoomLevel = 11
 
+//Collect Landsat data and define dates
 var collectionID = 'LANDSAT/LC08/C01/T1_TOA'
 var startDate = '2018-06-01'
 var endDate = '2019-07-01'
 
+//Give specifics about Landsat data
 var col = ee.ImageCollection(collectionID)
           .filterBounds(area)
           .filterDate(startDate, endDate)
           .filterMetadata('CLOUD_COVER', 'less_than', 10)
           .median()
-          
+
+//Determine bands          
 var style = {
   bands: ['B6', 'B5', 'B4'],
   min: 0.01,
@@ -18,12 +22,14 @@ var style = {
   gamma: 1
 }
 
+//Add layer and clip
 Map.addLayer(col.clip(aoi), style, 'Image')
 
 var calNDVI = function(a){
   return a.addBands(a.normalizedDifference(['B5', 'B4']).rename('ndvi'))
 }
 
+//Classify the bands
 var ndvi = calNDVI(col).select('ndvi')
 
 var splitNDVI = function(img){
@@ -49,7 +55,7 @@ var splitNDVI = function(img){
 
 var split = splitNDVI(ndvi)
 
-
+//Add bands and palette
 var addBands = function(nd, feature){
   
   var totalClass = 11
@@ -77,7 +83,7 @@ var addBands = function(nd, feature){
   }
   Map.centerObject(area, zoomLevel)
 }
-  //create legend
+//create legend
   var palette = [
     '1921ff',
     'ffa929',
