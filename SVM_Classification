@@ -1,0 +1,69 @@
+var growth = ee.FeatureCollection('users/gtnatia/Project_gee_treegrowth');
+growth = growth.geometry();
+Map.centerObject(growth);
+//Map.addLayer(growth, {color: 'red'}, 'growth');
+
+//
+
+var all_other = ee.FeatureCollection('users/gtnatia/Project_gee_allother');
+all_other = all_other.geometry();
+Map.centerObject(all_other);
+//Map.addLayer(all_other, {color: 'black'}, 'all_other');
+
+// Make a cloud-free Landsat 8 TOA composite (from raw imagery).
+var l8 = ee.ImageCollection('LANDSAT/LC08/C01/T1');
+
+var image = ee.Algorithms.Landsat.simpleComposite({
+  collection: l8.filterDate('2018-07-21', '2018-07-28'),
+  asFloat: true
+});
+
+// Use these bands for prediction.
+var bands = ['B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B10', 'B11'];
+
+//
+
+var polygons = ee.FeatureCollection([
+  ee.Feature(growth, {'class': 0}),
+  ee.Feature(all_other, {'class': 1}),
+]);
+
+// Get the values for all pixels in each polygon in the training.
+var training = image.sampleRegions({
+  // Get the sample from the polygons FeatureCollection.
+  collection: polygons,
+  // Keep this list of properties from the polygons.
+  properties: ['class'],
+  // Set the scale to get Landsat pixels in the polygons.
+  scale: 30
+});
+
+// Create an SVM classifier with custom parameters.
+var classifier = ee.Classifier.libsvm({
+  kernelType: 'RBF',
+  gamma: 0.5,
+  cost: 10
+});
+
+// Train the classifier.
+var trained = classifier.train(training, 'class', bands);
+
+// Classify the image.
+var classified = image.classify(trained);
+
+// Display the classification result and the input image.
+Map.setCenter(-72.355,-13.880, 9);
+Map.addLayer(image.clip(aoi), {bands: ['B4', 'B3', 'B2'], max: 0.5, gamma: 2});
+//Map.addLayer(polygons, {}, 'training polygons');
+Map.addLayer(classified.clip(aoi),
+             {min: 0, max: 1, palette: ['red', 'green']},
+             'supervised_classification');
+
+
+//Export to Google Drive
+Export.image.toDrive({
+  image: image,
+  description: 'SVM_Classification',
+  scale: 30,
+  region: aoi
+});
