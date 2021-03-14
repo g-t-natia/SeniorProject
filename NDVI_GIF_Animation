@@ -1,10 +1,6 @@
 // Fetch a MODIS NDVI collection and select NDVI.
 var col = ee.ImageCollection('MODIS/006/MOD13A2').select('NDVI');
 
-// Define a mask to clip the NDVI data by.
-// var mask = ee.FeatureCollection('USDOS/LSIB_SIMPLE/2017')
-//   .filter(ee.Filter.eq('wld_rgn', 'South America'));
-
 // Define the regional bounds of animation frames.
 var region = ee.Geometry.Polygon(
   [[[-72.8970653049801,-14.296410431794765],
@@ -22,7 +18,7 @@ col = col.map(function(img) {
 });
 
 // Get a collection of distinct images by 'doy'.
-var distinctDOY = col.filterDate('2013-01-01', '2016-01-01');
+var distinctDOY = col.filterDate('2015-01-01', '2018-01-01');
 
 // Define a filter that identifies which images from the complete
 // collection match the DOY from the distinct DOY collection.
